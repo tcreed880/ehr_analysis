@@ -1,0 +1,14 @@
+data/
+output/
+physionet.org/
+
+# Ignore large or temporary files
+*.gz
+*.zip
+
+# Ignore notebook checkpoint folders
+.ipynb_checkpoints/
+
+# macOS and editor-specific files
+.DS_Store
+*.swp
