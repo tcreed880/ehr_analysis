@@ -1,12 +1,10 @@
-# 🩺 Statin Adherence and Cardiovascular Readmission Analysis (OMOP + BigQuery)
+# Statin Adherence and Cardiovascular Readmission Analysis (OMOP + BigQuery)
 
 This project explores how medication adherence to **atorvastatin** relates to **readmissions for cardiovascular conditions** using synthetic EHR data formatted in the **OMOP Common Data Model**.
 
 All data comes from the **CMS Synthetic Patient Dataset**, hosted publicly in **BigQuery**.
 
----
-
-## 📌 Objectives
+## Objectives
 
 - Identify patients prescribed atorvastatin
 - Quantify statin adherence using prescription refill patterns
@@ -16,22 +14,22 @@ All data comes from the **CMS Synthetic Patient Dataset**, hosted publicly in **
 
 ---
 
-## 🧪 Methods
+## Methods
 
-### 🧍 1. Cohort Definition
+### 1. Cohort Definition
 - Patients with ≥2 prescriptions for **oral, single-ingredient atorvastatin tablets**
-### 🧮 2. Adherence Measures
+### 2. Adherence Measures
 - **Late refill** defined as a gap > 30 days between expected vs. actual refill date
 - Flags:
   - `low_adherence_flag`: any refill gap > 30 days or >20% late refills
   - `late_refill_rate`: percent of refills that were late
 
-### 💔 3. Readmission Outcome
+### 3. Readmission Outcome
 - Used `condition_occurrence` to identify **cardiovascular-related diagnoses**:
   - e.g., hypercholesterolemia, CAD, chest pain, MI, stroke
 - Patients flagged as `readmitted_within_30d_for_CVD` if a qualifying diagnosis occurred within 30 days of a previous one
 
-### 🧾 4. Covariates
+### 4. Covariates
 - Extracted from `person`, `condition_occurrence`, and `drug_exposure`
 - Included:
   - `age` at first statin fill
@@ -41,7 +39,7 @@ All data comes from the **CMS Synthetic Patient Dataset**, hosted publicly in **
 
 ---
 
-## 📁 Key Tables
+## Key Tables
 
 | Table | Description |
 |-------|-------------|
@@ -52,15 +50,14 @@ All data comes from the **CMS Synthetic Patient Dataset**, hosted publicly in **
 
 ---
 
-## 🧠 Planned Analysis
+## Planned Analysis
 
 Using the final patient-level dataset:
 
-```python
 logit(P(readmitted_within_30d_for_CVD)) ~ low_adherence_flag + age + gender + race + comorbidities + num_unique_meds
 Models will be built in Python using pandas, statsmodels, and scikit-learn.
 
-📦 Tech Stack
+Tech Stack
 SQL / BigQuery (OMOP CDM v5.3)
 
 Python (Jupyter)
@@ -69,14 +66,10 @@ CMS Synthetic Patient Data (2008–2010)
 
 OMOP vocabulary tables: concept, drug_exposure, condition_occurrence, person
 
-📍 Next Steps
+Next Steps
 Export final table from BigQuery to Python
 
 Run logistic regression and interpret adjusted odds ratios
 
-(Optional) Expand to 60/90-day readmissions or time-to-event modeling
+Expand to 60/90-day readmissions or time-to-event modeling, test senstitivy of low adherence flag to late refill rate.
 
-👤 Author
-[Your Name]
-📫 Contact: [your.email@example.com]
-🎓 Project developed to demonstrate real-world EHR analysis skills using OMOP + SQL + Python.
