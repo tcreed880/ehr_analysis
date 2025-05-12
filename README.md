@@ -1,120 +1,82 @@
-# EHR Readmission Analysis Project
+# 🩺 Statin Adherence and Cardiovascular Readmission Analysis (OMOP + BigQuery)
 
-This project simulates a real-world healthcare analytics workflow to identify patterns and risk factors for hospital readmissions using synthetic EHR (Electronic Health Records) data. It's designed to showcase skills relevant to data analyst roles in healthcare, including data wrangling, exploratory analysis, predictive modeling, and dashboard creation in Tableau.
+This project explores how medication adherence to **atorvastatin** relates to **readmissions for cardiovascular conditions** using synthetic EHR data formatted in the **OMOP Common Data Model**.
 
-## 🚀 Project Goals
+All data comes from the **CMS Synthetic Patient Dataset**, hosted publicly in **BigQuery**.
 
-* Use simulated EHR data to analyze hospital readmissions
-* Build a simple predictive model to identify high-risk patients
-* Create visualizations and dashboards to communicate insights
-* Demonstrate Tableau skills for real-world healthcare data scenarios
+---
 
-## 📁 Project Structure
+## 📌 Objectives
 
-```
-EHR-Readmission-Analysis/
-├── data/                          # Raw data (synthetic or downloaded) — not tracked by Git
-│   ├── demographics.csv
-│   ├── encounters.csv
-│   └── conditions.csv
-├── output/                        # Outputs for Tableau or reports — not tracked by Git
-│   └── patient_summary_for_tableau.csv
-├── ehr_readmission_project.ipynb # Main analysis notebook
-├── README.md                     # Project description (this file)
-├── .gitignore                    # Files to exclude from version control
-└── physionet.org/                # (Optional) Download directory — not tracked by Git
-```
+- Identify patients prescribed atorvastatin
+- Quantify statin adherence using prescription refill patterns
+- Define clinically relevant 30-day readmissions
+- Model the association between non-adherence and CVD-related readmissions
+- Adjust for demographics and comorbidities using OMOP fields
 
-## 📊 Tools Used
+---
 
-* **Python (Pandas, Scikit-learn, Matplotlib)** — for data wrangling and modeling
-* **Tableau** — for interactive dashboards
-* **GitHub** — for version control and project showcase
+## 🧪 Methods
 
-## 📈 Example Questions to Explore
+### 🧍 1. Cohort Definition
+- Patients with ≥2 prescriptions for **oral, single-ingredient atorvastatin tablets**
+### 🧮 2. Adherence Measures
+- **Late refill** defined as a gap > 30 days between expected vs. actual refill date
+- Flags:
+  - `low_adherence_flag`: any refill gap > 30 days or >20% late refills
+  - `late_refill_rate`: percent of refills that were late
 
-* What demographic factors are most associated with readmission?
-* How do readmission rates vary by hospital department or condition?
-* Can we build a simple model to flag high-risk patients for follow-up?
+### 💔 3. Readmission Outcome
+- Used `condition_occurrence` to identify **cardiovascular-related diagnoses**:
+  - e.g., hypercholesterolemia, CAD, chest pain, MI, stroke
+- Patients flagged as `readmitted_within_30d_for_CVD` if a qualifying diagnosis occurred within 30 days of a previous one
 
-## ✅ How to Run
+### 🧾 4. Covariates
+- Extracted from `person`, `condition_occurrence`, and `drug_exposure`
+- Included:
+  - `age` at first statin fill
+  - `gender`, `race`, `ethnicity` (joined from concept table)
+  - Comorbidities: `has_diabetes`, `has_ckd`, `has_heart_disease`
+  - `num_unique_meds` as proxy for polypharmacy
 
-1. Clone or download the repo
-2. Download the MIMIC-IV demo data from [here](https://physionet.org/content/mimiciv-demo/2.2/)
-3. Move the contents of the `2.2/` folder into your project's `data/` directory:
+---
 
-   ```bash
-   mv physionet.org/files/mimic-iv-demo/2.2/* data/
-   ```
-4. Navigate into the `data/` directory and unzip the `.csv.gz` files:
+## 📁 Key Tables
 
-   ```bash
-   cd data
-   find . -name "*.csv.gz" -exec gunzip {} \;
-   ```
-5. Return to the project root and run the Jupyter notebook: `ehr_readmission_project.ipynb`
-6. Explore the output CSV in Tableau to create dashboards
+| Table | Description |
+|-------|-------------|
+| `atorvastatin_tablet_ids` | Cleaned list of drug_concept_ids for eligible statin prescriptions |
+| `late_refiller` | Adherence metrics per patient |
+| `readmittance` | Adds 30-day readmission outcome |
+| `final_analysis_table` | Combined table with outcome + covariates for modeling |
 
-## 🧪 Sample Analysis Starter Code (MIMIC-IV Demo)
+---
 
-To identify hospital readmissions:
+## 🧠 Planned Analysis
+
+Using the final patient-level dataset:
 
 ```python
-import pandas as pd
+logit(P(readmitted_within_30d_for_CVD)) ~ low_adherence_flag + age + gender + race + comorbidities + num_unique_meds
+Models will be built in Python using pandas, statsmodels, and scikit-learn.
 
-# Load hospital admission and patient data
-adm = pd.read_csv("data/hosp/admissions.csv")
-pat = pd.read_csv("data/hosp/patients.csv")
+📦 Tech Stack
+SQL / BigQuery (OMOP CDM v5.3)
 
-# Merge admissions with patient demographics
-df = adm.merge(pat, on="subject_id")
+Python (Jupyter)
 
-# Sort by patient and admission time
-df = df.sort_values(by=["subject_id", "admittime"])
+CMS Synthetic Patient Data (2008–2010)
 
-# Flag readmissions within 30 days
-df['prev_dischtime'] = df.groupby('subject_id')['dischtime'].shift(1)
-df['days_since_last_discharge'] = (
-    pd.to_datetime(df['admittime']) - pd.to_datetime(df['prev_dischtime'])
-).dt.days
-df['readmitted_within_30'] = df['days_since_last_discharge'] <= 30
+OMOP vocabulary tables: concept, drug_exposure, condition_occurrence, person
 
-# Basic summary
-readmission_rate = df['readmitted_within_30'].mean()
-print(f"Readmission rate: {readmission_rate:.2%}")
-```
+📍 Next Steps
+Export final table from BigQuery to Python
 
-## 🌍 Public Data Sources
+Run logistic regression and interpret adjusted odds ratios
 
-* [Synthea EHR Simulator](https://synthetichealth.github.io/synthea/): Fully synthetic, realistic patient records with demographics, labs, meds, and diagnoses. Great for prototyping.
-* [CMS Readmissions Data](https://data.cms.gov/): Real, aggregated hospital-level readmission rates. Good for dashboards and benchmarking but not suitable for patient-level modeling.
-* [MIMIC-IV Demo](https://physionet.org/content/mimiciv-demo/2.2/): Real de-identified ICU patient data. Requires understanding of clinical schemas and CSV relationships. Demo version is downloadable without credentialing.
+(Optional) Expand to 60/90-day readmissions or time-to-event modeling
 
-**Note:** If using MIMIC-IV demo, you'll need to decompress `.csv.gz` files (e.g., with `gunzip`) and selectively work with tables like `patients.csv.gz`, `admissions.csv.gz`, and `diagnoses_icd.csv.gz`. To unzip all at once, run:
-
-```bash
-cd data
-find . -name "*.csv.gz" -exec gunzip {} \;
-```
-
-Use `brew install wget` if `wget` is not recognized in your terminal.
-
-## 🛡️ What’s Not Tracked by Git
-
-This repository excludes sensitive or bulky files using a `.gitignore` file. These folders are **not pushed to GitHub**:
-
-* `data/` — raw or synthetic datasets
-* `output/` — analysis outputs or dashboard inputs
-* `physionet.org/` — download directory from PhysioNet
-
-These folders must be created and populated manually on your local machine using the instructions above.
-
-## 🎯 Showcase Your Work
-
-* Publish your Tableau dashboard to Tableau Public
-* Add screenshots or GIFs of dashboards to this repo
-* Share your GitHub link in job applications or your portfolio!
-
-## 🙋‍♀️ About
-
-This project was created to build experience in clinical data analytics and improve job readiness for data analyst roles in healthcare. Created by \[Your Name].
+👤 Author
+[Your Name]
+📫 Contact: [your.email@example.com]
+🎓 Project developed to demonstrate real-world EHR analysis skills using OMOP + SQL + Python.
